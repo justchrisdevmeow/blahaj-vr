@@ -1,75 +1,136 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Blåhaj VR - Quest Controls</title>
+  <title>Blåhaj VR - Quest 2</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.3.0/dist/aframe-physics-system.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/super-hands@3.0.0/super-hands.min.js"></script>
 </head>
 <body>
   <a-scene physics="gravity: -9.8" background="color: #87CEEB">
     
-    <!-- Camera (no WASD) -->
+    <!-- Camera (player height) -->
     <a-camera position="0 1.6 0"></a-camera>
     
-    <!-- Quest Controllers with movement via thumbstick -->
-    <a-entity id="left-hand" oculus-touch-controls="hand: left" movement-controls></a-entity>
-    <a-entity id="right-hand" oculus-touch-controls="hand: right"></a-entity>
+    <!-- Left Controller with pointer and super-hands -->
+    <a-entity 
+      id="left-controller"
+      hand-controls="hand: left"
+      super-hands
+      laser-controls="hand: left">
+      
+      <!-- Pointer line -->
+      <a-entity laser-controls="hand: left"></a-entity>
+    </a-entity>
+    
+    <!-- Right Controller with pointer and super-hands -->
+    <a-entity 
+      id="right-controller"
+      hand-controls="hand: right"
+      super-hands
+      laser-controls="hand: right"
+      raycaster="objects: .grabbable">
+      
+      <!-- Pointer line -->
+      <a-entity laser-controls="hand: right"></a-entity>
+      
+      <!-- Grab indicator (circle that appears when pointing at Blåhaj) -->
+      <a-ring id="grab-indicator" radius="0.05" radius-inner="0.04" color="#FF0000" position="0 0 -0.5" visible="false"></a-ring>
+    </a-entity>
     
     <!-- Ground -->
     <a-plane rotation="-90 0 0" width="20" height="20" color="#7CB342" static-body></a-plane>
     
-    <!-- Blåhaj -->
+    <!-- Blåhaj (grabbable) -->
     <a-entity 
+      id="blahaj"
       gltf-model="url(blahaj.glb)"
       position="0 0.3 -2"
       scale="0.4 0.4 0.4"
       rotation="0 180 0"
       dynamic-body
+      class="grabbable"
       grabbable>
       
-      <a-sound src="https://www.myinstants.com/media/sounds/meow_1.mp3" autoplay="false" volume="0.5"></a-sound>
+      <!-- Meow sound -->
+      <a-sound id="meow-sound" src="https://www.myinstants.com/media/sounds/meow_1.mp3" autoplay="false" volume="0.5"></a-sound>
     </a-entity>
     
+    <!-- Simple movement: teleport on thumbstick click (works on Quest 2) -->
+    <a-entity teleport-controls="cameraRig: #camera-rig; teleportOrigin: #player"></a-entity>
+    
+    <!-- Lighting -->
     <a-light type="ambient" intensity="0.5"></a-light>
     <a-light type="directional" intensity="0.8" position="5 10 5"></a-light>
+    
+    <!-- Instructions -->
+    <a-text value="Point at Blåhaj with right controller\nPress trigger to grab\nRed circle appears when aiming at him" 
+            color="#FFFFFF" position="0 -1.5 -2.5" scale="0.3 0.3 0.3" align="center"></a-text>
   </a-scene>
   
   <script>
-    // Movement via left thumbstick
-    AFRAME.registerComponent('movement-controls', {
+    // Grab component with meow and indicator
+    AFRAME.registerComponent('grabbable', {
       init: function() {
-        this.velocity = new THREE.Vector3();
+        let indicator = document.querySelector('#grab-indicator');
+        let meowSound = this.el.querySelector('#meow-sound');
+        
+        // Show indicator when hovering
+        this.el.addEventListener('raycaster-intersected', () => {
+          if (indicator) indicator.setAttribute('visible', 'true');
+        });
+        
+        this.el.addEventListener('raycaster-intersected-cleared', () => {
+          if (indicator) indicator.setAttribute('visible', 'false');
+        });
+        
+        // Meow on grab
+        this.el.addEventListener('grab-start', () => {
+          if (meowSound) meowSound.components.sound.playSound();
+          if (indicator) indicator.setAttribute('visible', 'false');
+        });
+      }
+    });
+    
+    // Simple thumbstick movement for Quest 2
+    AFRAME.registerComponent('thumbstick-movement', {
+      schema: {
+        speed: { default: 3 }
+      },
+      init: function() {
+        let camera = document.querySelector('a-camera');
         this.el.addEventListener('axismove', (e) => {
-          const x = e.detail.x;
-          const y = e.detail.y;
-          
-          // Left thumbstick vertical = move forward/back
-          if (Math.abs(y) > 0.2) {
-            const camera = document.querySelector('a-camera');
-            const angle = camera.getAttribute('rotation').y;
-            const rad = angle * Math.PI / 180;
-            const speed = 3 * y;
-            
-            this.el.parentEl = this.el.parentElement;
-            // Apply movement to camera
-            camera.object3D.position.x -= Math.sin(rad) * speed * 0.02;
-            camera.object3D.position.z -= Math.cos(rad) * speed * 0.02;
+          // Left thumbstick (axis 2 = x, axis 3 = y)
+          if (e.detail.axis === 2) {
+            let x = e.detail.x;
+            let angle = camera.getAttribute('rotation').y;
+            let rad = angle * Math.PI / 180;
+            if (Math.abs(x) > 0.2) {
+              camera.object3D.position.x -= Math.sin(rad) * x * this.data.speed * 0.05;
+              camera.object3D.position.z -= Math.cos(rad) * x * this.data.speed * 0.05;
+            }
+          }
+          if (e.detail.axis === 3) {
+            let y = e.detail.y;
+            let angle = camera.getAttribute('rotation').y;
+            let rad = angle * Math.PI / 180;
+            if (Math.abs(y) > 0.2) {
+              camera.object3D.position.x -= Math.sin(rad) * y * this.data.speed * 0.05;
+              camera.object3D.position.z -= Math.cos(rad) * y * this.data.speed * 0.05;
+            }
           }
         });
       }
     });
     
-    // Grabbable component
-    AFRAME.registerComponent('grabbable', {
-      init: function() {
-        this.el.addEventListener('grab-start', () => {
-          const sound = this.el.querySelector('a-sound');
-          if (sound) sound.components.sound.playSound();
-        });
-      }
-    });
+    // Attach movement to left controller
+    let leftCtrl = document.querySelector('#left-controller');
+    if (leftCtrl) {
+      leftCtrl.setAttribute('thumbstick-movement', '');
+    }
   </script>
 </body>
 </html>

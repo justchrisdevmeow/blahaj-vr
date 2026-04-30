@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Blåhaj VR - Grabbable</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/super-hands@3.0.0/super-hands.min.js"></script>
+</head>
+<body>
+  <a-scene background="color: #87CEEB">
+    
+    <!-- Ground -->
+    <a-plane rotation="-90 0 0" width="20" height="20" color="#7CB342" static-body></a-plane>
+    
+    <!-- Blåhaj (grabbable) -->
+    <a-entity 
+      id="blahaj"
+      gltf-model="url(blahaj.glb)"
+      position="0 1.5 -2"
+      scale="0.5 0.5 0.5"
+      rotation="0 180 0"
+      dynamic-body
+      grab
+      throwable
+      class="grabbable">
+      
+      <!-- Meow sound on grab -->
+      <a-sound src="https://www.myinstants.com/media/sounds/meow_1.mp3" autoplay="false" volume="0.5"></a-sound>
+    </a-entity>
+    
+    <!-- Controllers with super-hands for grabbing -->
+    <a-entity hand-controls="hand: left" super-hands hand-model-style="color: #FF9900"></a-entity>
+    <a-entity hand-controls="hand: right" super-hands hand-model-style="color: #FF9900"></a-entity>
+    
+    <!-- Instructions -->
+    <a-text value="Grab Blåhaj with trigger\nMove him around\nRelease to drop" 
+            color="#FFFFFF" position="0 -1.5 -2.5" scale="0.5 0.5 0.5" align="center"></a-text>
+    
+    <a-light type="ambient" intensity="0.6"></a-light>
+    <a-light type="directional" intensity="0.8" position="5 10 5"></a-light>
+  </a-scene>
+  
+  <script>
+    // Meow when grabbed
+    AFRAME.registerComponent('grab', {
+      init: function() {
+        this.el.addEventListener('grab-start', () => {
+          this.el.querySelector('a-sound').components.sound.playSound();
+        });
+      }
+    });
+    
+    // Throwable component
+    AFRAME.registerComponent('throwable', {
+      init: function() {
+        this.el.addEventListener('grab-end', () => {
+          // Optional: Add throwing velocity here
+        });
+      }
+    });
+  </script>
+</body>
+</html>

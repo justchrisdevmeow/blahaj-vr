@@ -1,157 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Blåhaj VR</title>
+  <title>Blåhaj VR - Simple Stable</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/super-hands@3.0.0/super-hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.3.0/dist/aframe-physics-system.min.js"></script>
 </head>
 <body>
-  <a-scene background="color: #87CEEB" physics="gravity: -9.8">
+  <a-scene physics="gravity: -9.8" background="color: #87CEEB">
     
-    <!-- Player with movement and jump -->
-    <a-entity id="player" movement-controls="speed: 3" position="0 1.6 0">
-      <!-- Camera (what you see through) -->
-      <a-camera position="0 1.6 0"></a-camera>
-      
-      <!-- Left controller -->
-      <a-entity hand-controls="hand: left" super-hands hand-model-style="color: #FF9900"></a-entity>
-      
-      <!-- Right controller -->
-      <a-entity hand-controls="hand: right" super-hands hand-model-style="color: #FF9900"></a-entity>
+    <!-- Player with movement and gravity -->
+    <a-entity>
+      <a-camera position="0 1.6 0">
+        <!-- Movement via thumbstick (built-in) -->
+        <a-entity wasd-controls></a-entity>
+        <a-entity oculus-touch-controls="hand: left"></a-entity>
+        <a-entity oculus-touch-controls="hand: right"></a-entity>
+      </a-camera>
     </a-entity>
     
-    <!-- Ground (walkable) -->
-    <a-plane id="ground" rotation="-90 0 0" width="30" height="30" color="#7CB342" static-body></a-plane>
+    <!-- Ground with gravity -->
+    <a-plane rotation="-90 0 0" width="20" height="20" color="#7CB342" static-body></a-plane>
     
-    <!-- Blåhaj (lowered Y position) -->
+    <!-- Blåhaj with gravity (lowered Y) -->
     <a-entity 
-      id="blahaj"
       gltf-model="url(blahaj.glb)"
       position="0 0.3 -2"
       scale="0.4 0.4 0.4"
       rotation="0 180 0"
       dynamic-body
-      grab
-      throwable
-      class="grabbable">
+      grabbable>
       
       <!-- Meow sound -->
       <a-sound src="https://www.myinstants.com/media/sounds/meow_1.mp3" autoplay="false" volume="0.5"></a-sound>
     </a-entity>
     
-    <!-- Simple floating orbs (for decoration) -->
-    <a-sphere position="-2 1 -3" radius="0.2" color="#FF6B6B" dynamic-body></a-sphere>
-    <a-sphere position="2 1.5 -4" radius="0.2" color="#4ECDC4" dynamic-body></a-sphere>
-    <a-sphere position="0 2 -5" radius="0.2" color="#FFE66D" dynamic-body></a-sphere>
-    
-    <!-- Instructions -->
-    <a-text value="Left stick: move\nA button: jump\nGrab Blåhaj with trigger\nThrow or drop him" 
-            color="#FFFFFF" position="0 -1.5 -3" scale="0.4 0.4 0.4" align="center"></a-text>
-    
-    <!-- Lighting -->
-    <a-light type="ambient" intensity="0.6"></a-light>
+    <!-- Simple lighting -->
+    <a-light type="ambient" intensity="0.5"></a-light>
     <a-light type="directional" intensity="0.8" position="5 10 5"></a-light>
   </a-scene>
   
   <script>
-    // Movement controls
-    AFRAME.registerComponent('movement-controls', {
-      schema: {
-        speed: { default: 3 }
-      },
-      init: function() {
-        this.velocity = new THREE.Vector3();
-        this.keys = { w: false, a: false, s: false, d: false };
-        
-        // Keyboard controls
-        window.addEventListener('keydown', (e) => {
-          if (e.key === 'w') this.keys.w = true;
-          if (e.key === 'a') this.keys.a = true;
-          if (e.key === 's') this.keys.s = true;
-          if (e.key === 'd') this.keys.d = true;
-          // Jump on spacebar
-          if (e.key === ' ') this.jump();
-        });
-        window.addEventListener('keyup', (e) => {
-          if (e.key === 'w') this.keys.w = false;
-          if (e.key === 'a') this.keys.a = false;
-          if (e.key === 's') this.keys.s = false;
-          if (e.key === 'd') this.keys.d = false;
-        });
-        
-        // Controller movement (thumbstick)
-        this.el.addEventListener('axismove', (e) => {
-          if (e.detail.axis === 2) { // Left stick horizontal
-            this.keys.a = e.detail.x < -0.5;
-            this.keys.d = e.detail.x > 0.5;
-          }
-          if (e.detail.axis === 3) { // Left stick vertical
-            this.keys.w = e.detail.y < -0.5;
-            this.keys.s = e.detail.y > 0.5;
-          }
-        });
-        
-        // Jump button (A button on Quest)
-        this.el.addEventListener('buttonup', (e) => {
-          if (e.detail.id === 'a') this.jump();
-        });
-      },
-      jump: function() {
-        if (this.el.body && this.el.body.velocity.y > -0.5 && this.el.body.velocity.y < 0.5) {
-          this.el.body.velocity.y = 5;
-        }
-      },
-      tick: function() {
-        if (!this.el.body) return;
-        
-        let moveX = 0;
-        let moveZ = 0;
-        if (this.keys.w) moveZ -= 1;
-        if (this.keys.s) moveZ += 1;
-        if (this.keys.a) moveX -= 1;
-        if (this.keys.d) moveX += 1;
-        
-        if (moveX !== 0 || moveZ !== 0) {
-          const angle = this.el.getAttribute('rotation').y;
-          const rad = angle * Math.PI / 180;
-          const move = new THREE.Vector3(moveX, 0, moveZ).normalize();
-          const vel = new THREE.Vector3(
-            move.x * Math.cos(rad) + move.z * Math.sin(rad),
-            0,
-            move.z * Math.cos(rad) - move.x * Math.sin(rad)
-          ).multiplyScalar(this.data.speed);
-          
-          this.el.body.velocity.x = vel.x;
-          this.el.body.velocity.z = vel.z;
-        } else {
-          this.el.body.velocity.x = 0;
-          this.el.body.velocity.z = 0;
-        }
-      }
-    });
-    
-    // Grab component (with meow)
-    AFRAME.registerComponent('grab', {
+    AFRAME.registerComponent('grabbable', {
       init: function() {
         this.el.addEventListener('grab-start', () => {
           const sound = this.el.querySelector('a-sound');
           if (sound) sound.components.sound.playSound();
-        });
-      }
-    });
-    
-    // Throwable component
-    AFRAME.registerComponent('throwable', {
-      init: function() {
-        this.grabbed = false;
-        this.el.addEventListener('grab-start', () => {
-          this.grabbed = true;
-        });
-        this.el.addEventListener('grab-end', () => {
-          this.grabbed = false;
         });
       }
     });

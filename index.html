@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Blåhaj VR - Simple Stable</title>
+  <title>Blåhaj VR - Quest Controls</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -10,20 +10,17 @@
 <body>
   <a-scene physics="gravity: -9.8" background="color: #87CEEB">
     
-    <!-- Player with movement and gravity -->
-    <a-entity>
-      <a-camera position="0 1.6 0">
-        <!-- Movement via thumbstick (built-in) -->
-        <a-entity wasd-controls></a-entity>
-        <a-entity oculus-touch-controls="hand: left"></a-entity>
-        <a-entity oculus-touch-controls="hand: right"></a-entity>
-      </a-camera>
-    </a-entity>
+    <!-- Camera (no WASD) -->
+    <a-camera position="0 1.6 0"></a-camera>
     
-    <!-- Ground with gravity -->
+    <!-- Quest Controllers with movement via thumbstick -->
+    <a-entity id="left-hand" oculus-touch-controls="hand: left" movement-controls></a-entity>
+    <a-entity id="right-hand" oculus-touch-controls="hand: right"></a-entity>
+    
+    <!-- Ground -->
     <a-plane rotation="-90 0 0" width="20" height="20" color="#7CB342" static-body></a-plane>
     
-    <!-- Blåhaj with gravity (lowered Y) -->
+    <!-- Blåhaj -->
     <a-entity 
       gltf-model="url(blahaj.glb)"
       position="0 0.3 -2"
@@ -32,16 +29,39 @@
       dynamic-body
       grabbable>
       
-      <!-- Meow sound -->
       <a-sound src="https://www.myinstants.com/media/sounds/meow_1.mp3" autoplay="false" volume="0.5"></a-sound>
     </a-entity>
     
-    <!-- Simple lighting -->
     <a-light type="ambient" intensity="0.5"></a-light>
     <a-light type="directional" intensity="0.8" position="5 10 5"></a-light>
   </a-scene>
   
   <script>
+    // Movement via left thumbstick
+    AFRAME.registerComponent('movement-controls', {
+      init: function() {
+        this.velocity = new THREE.Vector3();
+        this.el.addEventListener('axismove', (e) => {
+          const x = e.detail.x;
+          const y = e.detail.y;
+          
+          // Left thumbstick vertical = move forward/back
+          if (Math.abs(y) > 0.2) {
+            const camera = document.querySelector('a-camera');
+            const angle = camera.getAttribute('rotation').y;
+            const rad = angle * Math.PI / 180;
+            const speed = 3 * y;
+            
+            this.el.parentEl = this.el.parentElement;
+            // Apply movement to camera
+            camera.object3D.position.x -= Math.sin(rad) * speed * 0.02;
+            camera.object3D.position.z -= Math.cos(rad) * speed * 0.02;
+          }
+        });
+      }
+    });
+    
+    // Grabbable component
     AFRAME.registerComponent('grabbable', {
       init: function() {
         this.el.addEventListener('grab-start', () => {

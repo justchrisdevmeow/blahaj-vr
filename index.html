@@ -1,48 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Blåhaj VR - Quest 2 Working</title>
+  <title>Blåhaj VR</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-  <!-- Core A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  
-  <!-- Physics -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.3.0/dist/aframe-physics-system.min.js"></script>
-  
-  <!-- Quest 2 specific: thumbstick movement -->
-  <script src="https://cdn.jsdelivr.net/npm/aframe-thumbstick-locomotion@0.1.3/dist/aframe-thumbstick-locomotion.min.js"></script>
-  
-  <!-- Hand tracking and grabbing -->
-  <script src="https://cdn.jsdelivr.net/npm/aframe-hand-tracking@0.1.0/dist/aframe-hand-tracking.min.js"></script>
 </head>
 <body>
-  <a-scene physics="driver: ammo; gravity: -9.8" background="color: #87CEEB">
+  <a-scene physics="gravity: -9.8" background="color: #87CEEB">
     
-    <!-- Player with working Quest 2 movement -->
-    <a-entity id="player" thumbstick-locomotion="speed: 3; fly: false">
-      <a-camera id="camera" position="0 1.6 0">
-        <!-- Crosshair for grabbing -->
-        <a-entity id="crosshair" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.015" material="color: #FFFFFF"></a-entity>
-      </a-camera>
-      
-      <!-- Left controller model -->
+    <!-- Player movement with collision -->
+    <a-entity id="player" movement-controls="speed: 3; fly: false" kinematic-body>
+      <a-camera id="camera" position="0 1.6 0"></a-camera>
       <a-entity hand-controls="hand: left"></a-entity>
-      
-      <!-- Right controller model with raycaster for grabbing -->
-      <a-entity id="right-hand" hand-controls="hand: right" raycaster="objects: .grabbable; far: 5; showLine: true">
-        <!-- Pointer line visible when aiming -->
-        <a-entity id="pointer-line" line="start: 0 0 0; end: 0 0 -5; color: #00FF00; opacity: 0.8"></a-entity>
+      <a-entity hand-controls="hand: right" raycaster="objects: .grabbable; far: 5; showLine: true">
+        <a-entity laser-controls="hand: right"></a-entity>
       </a-entity>
     </a-entity>
     
     <!-- Ground -->
     <a-plane rotation="-90 0 0" width="30" height="30" color="#7CB342" static-body></a-plane>
     
-    <!-- Blåhaj with grabbable component -->
+    <!-- Blåhaj -->
     <a-entity 
-      id="blahaj"
       gltf-model="url(blahaj.glb)"
       position="0 0.3 -2"
       scale="0.4 0.4 0.4"
@@ -50,109 +32,23 @@
       dynamic-body
       class="grabbable"
       grabbable>
-      
-      <!-- Meow sound -->
-      <a-sound id="meow-sound" src="https://www.myinstants.com/media/sounds/meow_1.mp3" autoplay="false" volume="0.8"></a-sound>
+      <a-sound src="https://www.myinstants.com/media/sounds/meow_1.mp3" autoplay="false" volume="0.5"></a-sound>
     </a-entity>
     
-    <!-- Indicator: Glow when hovering Blåhaj -->
-    <a-entity id="hover-indicator" position="0 0.5 0" scale="1 1 1" visible="false">
-      <a-ring radius="0.6" radius-inner="0.55" color="#FF6600" opacity="0.8"></a-ring>
-      <a-ring radius="0.7" radius-inner="0.65" color="#FFAA00" opacity="0.6"></a-ring>
-    </a-entity>
-    
-    <!-- Decorative elements -->
-    <a-entity position="0 -0.5 -3">
-      <a-torus radius="0.5" radius-tubular="0.05" color="#FF6B6B" animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"></a-torus>
-      <a-torus radius="0.5" radius-tubular="0.05" color="#4ECDC4" animation="property: rotation; to: 360 0 0; loop: true; dur: 4000"></a-torus>
-    </a-entity>
-    
-    <!-- Lighting -->
-    <a-light type="ambient" intensity="0.6"></a-light>
+    <a-light type="ambient" intensity="0.5"></a-light>
     <a-light type="directional" intensity="0.8" position="5 10 5"></a-light>
-    
-    <!-- Instructions -->
-    <a-text value="Left stick: move | Point right controller at Blåhaj | Trigger: grab | Orange glow: ready to grab" 
-            color="#FFFFFF" position="0 -1.5 -2.5" scale="0.25 0.25 0.25" align="center"></a-text>
+    <a-text value="Trigger = grab" color="white" position="0 -1 -2.5" scale="0.5 0.5 0.5"></a-text>
   </a-scene>
   
   <script>
-    // Register grabbable component with hover indicator
     AFRAME.registerComponent('grabbable', {
       init: function() {
-        this.grabbed = false;
-        this.hoverIndicator = document.querySelector('#hover-indicator');
-        this.meowSound = this.el.querySelector('#meow-sound');
-        this.originalParent = this.el.parentNode;
-        
-        // Attach indicator to Blåhaj
-        if (this.hoverIndicator) {
-          this.el.appendChild(this.hoverIndicator);
-          this.hoverIndicator.setAttribute('position', '0 0.5 0');
-        }
-        
-        // Show indicator when hovering (raycaster hits)
-        this.el.addEventListener('raycaster-intersected', () => {
-          if (!this.grabbed && this.hoverIndicator) {
-            this.hoverIndicator.setAttribute('visible', 'true');
-          }
-        });
-        
-        this.el.addEventListener('raycaster-intersected-cleared', () => {
-          if (!this.grabbed && this.hoverIndicator) {
-            this.hoverIndicator.setAttribute('visible', 'false');
-          }
-        });
-        
-        // Grab on trigger
+        let sound = this.el.querySelector('a-sound');
         this.el.addEventListener('grab-start', () => {
-          this.grabbed = true;
-          if (this.meowSound) this.meowSound.components.sound.playSound();
-          if (this.hoverIndicator) this.hoverIndicator.setAttribute('visible', 'false');
-          
-          // Parent to right controller
-          const rightHand = document.querySelector('#right-hand');
-          if (rightHand) {
-            this.originalParent = this.el.parentNode;
-            rightHand.appendChild(this.el);
-            // Position in front of controller
-            this.el.setAttribute('position', '0 0.2 -0.5');
-          }
-        });
-        
-        // Release on trigger release
-        this.el.addEventListener('grab-end', () => {
-          this.grabbed = false;
-          
-          // Return to scene
-          if (this.el.parentNode !== this.originalParent) {
-            const scene = document.querySelector('a-scene');
-            scene.appendChild(this.el);
-            this.el.setAttribute('position', '0 0.3 -2');
-          }
+          if (sound) sound.components.sound.playSound();
         });
       }
     });
-    
-    // Force raycasting from right controller every frame
-    AFRAME.registerComponent('raycaster-updater', {
-      tick: function() {
-        const rightHand = document.querySelector('#right-hand');
-        if (rightHand && rightHand.components.raycaster) {
-          rightHand.components.raycaster.refreshObjects();
-        }
-      }
-    });
-    
-    document.querySelector('a-scene').setAttribute('raycaster-updater', '');
-    
-    // Fix thumbstick movement: ensure it's enabled
-    setTimeout(() => {
-      const player = document.querySelector('#player');
-      if (player && player.components['thumbstick-locomotion']) {
-        player.components['thumbstick-locomotion'].enabled = true;
-      }
-    }, 1000);
   </script>
 </body>
 </html>

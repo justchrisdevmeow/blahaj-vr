@@ -39,6 +39,7 @@ jobs:
         run: |
           cp main.lua lovr/AndroidStudio/app/src/main/assets/main.lua
           cp blahaj.glb lovr/AndroidStudio/app/src/main/assets/blahaj.glb
+          cp meow.wav lovr/AndroidStudio/app/src/main/assets/meow.wav
       
       - name: Build and sign APK
         run: |

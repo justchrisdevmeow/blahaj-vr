@@ -1,4 +1,4 @@
-name: Build Signed Blåhaj VR
+name: Build Blåhaj VR
 
 on:
   push:
@@ -12,48 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Java
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-      
-      - name: Install NDK
-        run: sdkmanager "ndk;25.1.8937393"
-      
-      - name: Generate keystore
+      - name: Download LÖVR APK
         run: |
-          keytool -genkey -v -keystore blahaj.keystore -alias blahaj -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Blahaj, O=Blahaj, C=US" -storepass blahaj123 -keypass blahaj123
-      
-      - name: Clone LÖVR
-        run: |
-          git clone https://github.com/bjornbytes/lovr
-          cd lovr
-          git submodule update --init --recursive
+          curl -L -o lovr.apk https://github.com/bjornbytes/lovr/releases/download/v0.17.0/lovr-android.apk
       
       - name: Inject Blåhaj files
         run: |
-          mkdir -p lovr/AndroidStudio/app/src/main/assets
-          cp main.lua lovr/AndroidStudio/app/src/main/assets/main.lua
-          cp blahaj.glb lovr/AndroidStudio/app/src/main/assets/blahaj.glb
-          cp meow.wav lovr/AndroidStudio/app/src/main/assets/meow.wav
-      
-      - name: Build and sign APK
-        run: |
-          cd lovr/AndroidStudio
-          chmod +x gradlew
-          ./gradlew assembleRelease
-          
-          apksigner sign --ks ../../blahaj.keystore --ks-pass pass:blahaj123 --key-pass pass:blahaj123 --ks-key-alias blahaj \
-            app/build/outputs/apk/release/app-release-unsigned.apk
-          
-          mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/BlahajVR.apk
+          mkdir -p assets
+          cp main.lua assets/
+          cp blahaj.glb assets/
+          cp meow.wav assets/
+          zip -ur lovr.apk assets/*
       
       - uses: actions/upload-artifact@v4
         with:
-          name: BlahajVR-signed
-          path: lovr/AndroidStudio/app/build/outputs/apk/release/BlahajVR.apk
+          name: BlahajVR
+          path: lovr.apk

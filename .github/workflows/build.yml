@@ -14,7 +14,9 @@ jobs:
       
       - name: Download LÖVR APK
         run: |
-          curl -L -o lovr.apk https://github.com/bjornbytes/lovr/releases/download/v0.17.0/lovr-android.apk
+          wget -O lovr.apk https://github.com/bjornbytes/lovr/releases/download/v0.17.0/lovr-android.apk
+          file lovr.apk
+          unzip -t lovr.apk
       
       - name: Inject Blåhaj files
         run: |

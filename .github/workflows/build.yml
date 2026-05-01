@@ -16,7 +16,6 @@ jobs:
         run: |
           wget -O lovr.zip https://github.com/bjornbytes/lovr/releases/download/v0.18.0/lovr-v0.18.0.apk.zip
           unzip lovr.zip
-          ls -la
       
       - name: Inject Blåhaj files
         run: |
@@ -25,6 +24,20 @@ jobs:
           cp blahaj.glb assets/
           cp meow.wav assets/
           zip -ur lovr.apk assets/*
+      
+      - name: Generate debug keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -alias debug -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Debug, O=Debug, C=US" -storepass android -keypass android
+      
+      - name: Install apksigner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apksigner
+      
+      - name: Re-sign APK
+        run: |
+          apksigner sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android --ks-key-alias debug lovr.apk
       
       - uses: actions/upload-artifact@v4
         with:

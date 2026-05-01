@@ -37,6 +37,7 @@ jobs:
       
       - name: Inject Blåhaj files
         run: |
+          mkdir -p lovr/AndroidStudio/app/src/main/assets
           cp main.lua lovr/AndroidStudio/app/src/main/assets/main.lua
           cp blahaj.glb lovr/AndroidStudio/app/src/main/assets/blahaj.glb
           cp meow.wav lovr/AndroidStudio/app/src/main/assets/meow.wav

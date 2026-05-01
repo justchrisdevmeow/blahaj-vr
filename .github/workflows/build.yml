@@ -16,8 +16,7 @@ jobs:
         run: |
           wget -O lovr.zip https://github.com/bjornbytes/lovr/releases/download/v0.18.0/lovr-v0.18.0.apk.zip
           unzip lovr.zip
-          mv lovr-v0.18.0.apk lovr.apk
-          file lovr.apk
+          ls -la
       
       - name: Inject Blåhaj files
         run: |
